@@ -1,0 +1,88 @@
+"""
+Production settings for FreshCart.
+"""
+
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
+from .base import *  # noqa: F401, F403
+
+# ── Debug ────────────────────────────────────────────
+
+DEBUG = False
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "").split(",")  # noqa: F405
+
+# ── Security ─────────────────────────────────────────
+
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "DENY"
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# ── CORS ─────────────────────────────────────────────
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")  # noqa: F405
+    if origin.strip()
+]
+CORS_ALLOW_CREDENTIALS = True
+
+# ── Static Files ────────────────────────────────────
+
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+
+# ── Email ────────────────────────────────────────────
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+
+# ── Logging ──────────────────────────────────────────
+
+LOGGING["handlers"]["file"]["level"] = "INFO"  # noqa: F405
+LOGGING["loggers"]["django"]["level"] = "WARNING"  # noqa: F405
+LOGGING["loggers"]["apps"]["level"] = "INFO"  # noqa: F405
+
+# ── Sentry ───────────────────────────────────────────
+
+SENTRY_DSN = os.environ.get("SENTRY_DSN", "")  # noqa: F405
+
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        integrations=[
+            DjangoIntegration(),
+            CeleryIntegration(),
+            RedisIntegration(),
+        ],
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+        environment="production",
+    )
+
+# ── Cache ────────────────────────────────────────────
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://redis:6379/0"),  # noqa: F405
+        "KEY_PREFIX": "freshcart_prod",
+        "TIMEOUT": 600,
+        "OPTIONS": {
+            "db": "0",
+        },
+    }
+}
+
+# ── Database Connection Pooling ─────────────────────
+
+DATABASES["default"]["CONN_MAX_AGE"] = 600  # noqa: F405
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # noqa: F405

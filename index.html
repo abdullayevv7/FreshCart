@@ -1,0 +1,63 @@
+"""
+Development settings for FreshCart.
+"""
+
+from .base import *  # noqa: F401, F403
+
+# ── Debug ────────────────────────────────────────────
+
+DEBUG = True
+ALLOWED_HOSTS = ["*"]
+
+# ── CORS ─────────────────────────────────────────────
+
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
+# ── REST Framework ───────────────────────────────────
+# Add browsable API in development
+
+REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] = (  # noqa: F405
+    "rest_framework.renderers.JSONRenderer",
+    "rest_framework.renderers.BrowsableAPIRenderer",
+)
+
+# Disable throttling in development
+REST_FRAMEWORK["DEFAULT_THROTTLE_CLASSES"] = []  # noqa: F405
+
+# ── Email ────────────────────────────────────────────
+# Use console backend in development
+
+EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+# ── Caching ──────────────────────────────────────────
+# Use local memory cache in development if Redis is not available
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/0"),  # noqa: F405
+        "KEY_PREFIX": "freshcart_dev",
+        "TIMEOUT": 300,
+    }
+}
+
+# ── Logging ──────────────────────────────────────────
+
+LOGGING["loggers"]["apps"]["level"] = "DEBUG"  # noqa: F405
+LOGGING["loggers"]["django.db.backends"] = {  # noqa: F405
+    "handlers": ["console"],
+    "level": "WARNING",
+    "propagate": False,
+}
+
+# ── Django Extensions ────────────────────────────────
+
+SHELL_PLUS_PRINT_SQL = True
+SHELL_PLUS_PRINT_SQL_TRUNCATE = 1000
+
+# ── Development-specific installed apps ──────────────
+
+INSTALLED_APPS += [  # noqa: F405
+    # Add any development-only apps here
+]
